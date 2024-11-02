@@ -3,15 +3,13 @@
   "packages": [
     {
       "name": "IVio",
-      "version": "0.4.2.1",
-      "github_repository": "iv-project/IVio",
-      "git_tag": "4ec8f1e8515ef84cceab08419d6737de455bf196"
+      "version": "0.4.3",
+      "github_repository": "iv-project/IVio"
     },
     {
       "name": "clice",
-      "version": "1.0.0.1",
-      "github_repository": "SGSSGene/clice",
-      "git_tag": "3072b0a175d88475bdebdb21eba34939882fe88e"
+      "version": "1.0.1",
+      "github_repository": "SGSSGene/clice"
     },
     {
       "name": "fmt",
