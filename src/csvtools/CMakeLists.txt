@@ -5,6 +5,7 @@ cmake_minimum_required (VERSION 3.25)
 add_executable(csvtools
     main.cpp
     print.cpp
+    merge.cpp
     table/writer.cpp
 )
 target_link_libraries(csvtools
