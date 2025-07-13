@@ -59,7 +59,7 @@ auto cliColumnOrder = clice::Argument {
     .parent = &cliCmd,
     .args   = {"--order"},
     .desc   = "order of the columns. If no columns given, ignore this parameter.",
-    .value  = std::vector<size_t>{},
+    .value  = std::vector<std::string>{},
 };
 auto cliCustomPrint = clice::Argument {
     .parent = &cliCmd,
@@ -91,6 +91,29 @@ struct Rect {
         return valid;
     }
 };
+
+        // parse number
+auto parseNumberRange(std::string s, size_t min, size_t max) -> std::tuple<size_t, size_t> {
+    if (auto iter = s.find("-"); iter != std::string::npos) {
+        auto start = s.substr(0, iter);
+        size_t startI = min;
+        auto end   = s.substr(iter+1);
+        size_t endI = max;
+
+        if (start.size()) {
+            startI = std::stoi(start);
+        }
+        if (end.size()) {
+            endI = std::stoi(end);
+        }
+        return {startI, endI};
+    } else if (s.size()) {
+        auto v = std::stoi(s);
+        return {v, v};
+    }
+    return {0, max};
+};
+
 
 void app() {
     if (cliCmd->size() == 0) {
@@ -150,43 +173,28 @@ void app() {
             }
         }
         if (cliColumnOrder && cliColumnOrder->size() > 0) {
-            for (auto col : *cliColumnOrder) {
-                if (col >= width) {
-                    throw std::runtime_error{fmt::format("Can not select column {}, since only {} columns exist", col, width)};
+            auto ranges = std::vector<std::tuple<size_t, size_t>>{};
+            for (auto e : *cliColumnOrder) {
+                ranges.emplace_back(parseNumberRange(e, 0, width-1));
+                auto [start, end] = ranges.back();
+                if (start >= width || end >= width) {
+                    throw std::runtime_error{fmt::format("invalid order range {}-{} max value allowed is {}", start, end, width-1)};
                 }
             }
+
             auto vec = std::vector<std::vector<std::string>>{};
             for (auto const& in_entries : values) {
                 auto out_entries = std::vector<std::string>{};
-                for (auto col : *cliColumnOrder) {
-                    out_entries.push_back(in_entries[col]);
+                for (auto [start, end] : ranges) {
+                    for (; start <= end; ++start) {
+                        out_entries.push_back(in_entries[start]);
+                    }
                 }
                 vec.emplace_back(std::move(out_entries));
             }
             std::swap(vec, values);
         }
 
-        // parse number
-        auto parseNumberRange = [](std::string s, size_t min, size_t max) -> std::tuple<size_t, size_t> {
-            if (auto iter = s.find("-"); iter != std::string::npos) {
-                auto start = s.substr(0, iter);
-                size_t startI = min;
-                auto end   = s.substr(iter+1);
-                size_t endI = max;
-
-                if (start.size()) {
-                    startI = std::stoi(start);
-                }
-                if (end.size()) {
-                    endI = std::stoi(end);
-                }
-                return {startI, endI};
-            } else if (s.size()) {
-                auto v = std::stoi(s);
-                return {v, v};
-            }
-            return {0, max};
-        };
         auto parseNextF = [](std::string& s) {
             auto iter = s.find(":");
             if (iter == std::string::npos) {
@@ -307,42 +315,10 @@ void app() {
             using Filter = std::function<std::string(size_t row, size_t col, std::string)>;
             auto filterMap = std::vector<std::tuple<Rect, Filter>>{};
             for (auto l : *cliFilterPrint) {
-                auto parseNextF = [](std::string& s) {
-                    auto iter = s.find(":");
-                    if (iter == std::string::npos) {
-                        throw std::runtime_error{"filter must be of format: \"<rnr>:<cnr>:<filter>:<fmt>\""};
-                    }
-                    auto ret = s.substr(0, iter);
-                    s = s.substr(iter+1);
-                    return ret;
-                };
                 auto rowsStr   = parseNextF(l);
                 auto colsStr   = parseNextF(l);
                 auto filterStr = parseNextF(l);
                 auto suffix    = l;
-
-                // parse number
-                auto parseNumberRange = [](std::string s, size_t min, size_t max) -> std::tuple<size_t, size_t> {
-                    if (auto iter = s.find("-"); iter != std::string::npos) {
-                        auto start = s.substr(0, iter);
-                        size_t startI = min;
-                        auto end   = s.substr(iter+1);
-                        size_t endI = max;
-
-                        if (start.size()) {
-                            startI = std::stoi(start);
-                        }
-                        if (end.size()) {
-                            endI = std::stoi(end);
-                        }
-                        return {startI, endI};
-                    } else if (s.size()) {
-                        auto v = std::stoi(s);
-                        return {v, v};
-                    }
-                    return {0, max};
-                };
-
 
                 // parse which columns to apply this to
                 auto [rstart, rend] = parseNumberRange(rowsStr, 0, std::numeric_limits<size_t>::max());
