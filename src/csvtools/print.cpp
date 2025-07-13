@@ -176,7 +176,12 @@ void app() {
             auto ranges = std::vector<std::tuple<std::string, size_t, size_t>>{};
             for (auto e : *cliColumnOrder) {
                 if (e == "id") {
-                    ranges.emplace_back(e, 0, 0);
+                    ranges.emplace_back(e, 0, 1);
+                    continue;
+                }
+                if (e.starts_with("id ")) {
+                    auto start = std::stoi(e.substr(3));
+                    ranges.emplace_back("id", start, 1);
                     continue;
                 }
                 auto [start, end] = parseNumberRange(e, 0, width-1);
@@ -192,7 +197,7 @@ void app() {
                 auto out_entries = std::vector<std::string>{};
                 for (auto [type, start, end] : ranges) {
                     if (type == "id") {
-                        out_entries.push_back(std::to_string(row));
+                        out_entries.push_back(std::to_string(row*end + start));
                     } else if (type == "range") {
                         for (; start <= end; ++start) {
                             out_entries.push_back(in_entries[start]);
