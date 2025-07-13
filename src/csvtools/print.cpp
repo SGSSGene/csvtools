@@ -54,6 +54,18 @@ auto cliOutputType = clice::Argument {
         {"csv",   OutputType::CSV},
     }},
 };
+auto cliColumnOrder = clice::Argument {
+    .parent = &cliCmd,
+    .args   = {"--order"},
+    .desc   = "order of the columns. If no columns given, ignore this parameter.",
+    .value  = std::vector<size_t>{},
+};
+auto cliCustomPrint = clice::Argument {
+    .parent = &cliCmd,
+    .args   = {"--fmt"},
+    .desc   = "custom format",
+    .value  = std::vector<std::string>{},
+};
 
 
 void printLatexTable(std::vector<std::string> entries) {
@@ -90,6 +102,7 @@ void app() {
                     vec[x][y] = values[y][x];
                 }
             }
+            width = values.size();
             std::swap(vec, values);
         }
 
@@ -111,6 +124,50 @@ void app() {
                     auto& v = values[y][x];
                     if (auto iter = mapping.find(v); iter != mapping.end()) {
                         v = iter->second;
+                    }
+                }
+            }
+        }
+        if (cliColumnOrder && cliColumnOrder->size() > 0) {
+            for (auto col : *cliColumnOrder) {
+                if (col >= width) {
+                    throw std::runtime_error{fmt::format("Can not select column {}, since only {} columns exist", col, width)};
+                }
+            }
+            auto vec = std::vector<std::vector<std::string>>{};
+            for (auto const& in_entries : values) {
+                auto out_entries = std::vector<std::string>{};
+                for (auto col : *cliColumnOrder) {
+                    out_entries.push_back(in_entries[col]);
+                }
+                vec.emplace_back(std::move(out_entries));
+            }
+            std::swap(vec, values);
+        }
+
+        auto customFmt = std::unordered_map<size_t, std::string>{};
+        if (cliCustomPrint) {
+            for (auto l : *cliCustomPrint) {
+                auto iter = l.find(":");
+                if (iter == std::string::npos) {
+                    throw std::runtime_error{"custom format must be of format: \"<nr>:<fmt>\""};
+                }
+                auto prefix = l.substr(0, iter);
+                auto suffix = l.substr(iter+1);
+                if (prefix.size()) {
+                    auto col = std::stoi(prefix);
+                    customFmt[col] = suffix;
+                } else {
+                    for (size_t i{0}; i < width; ++i) {
+                        customFmt[i] = suffix;
+                    }
+                }
+            }
+            for (auto& entries : values) {
+                for (size_t col{0}; col < entries.size(); ++col) {
+                    auto& e = entries[col];
+                    if (auto iter = customFmt.find(col); iter != customFmt.end()) {
+                        e = fmt::format(fmt::runtime(iter->second), e);
                     }
                 }
             }
