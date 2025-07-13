@@ -173,21 +173,30 @@ void app() {
             }
         }
         if (cliColumnOrder && cliColumnOrder->size() > 0) {
-            auto ranges = std::vector<std::tuple<size_t, size_t>>{};
+            auto ranges = std::vector<std::tuple<std::string, size_t, size_t>>{};
             for (auto e : *cliColumnOrder) {
-                ranges.emplace_back(parseNumberRange(e, 0, width-1));
-                auto [start, end] = ranges.back();
+                if (e == "id") {
+                    ranges.emplace_back(e, 0, 0);
+                    continue;
+                }
+                auto [start, end] = parseNumberRange(e, 0, width-1);
                 if (start >= width || end >= width) {
                     throw std::runtime_error{fmt::format("invalid order range {}-{} max value allowed is {}", start, end, width-1)};
                 }
+                ranges.emplace_back("range", start, end);
             }
 
             auto vec = std::vector<std::vector<std::string>>{};
-            for (auto const& in_entries : values) {
+            for (size_t row{}; row < values.size(); ++row) {
+                auto const& in_entries = values[row];
                 auto out_entries = std::vector<std::string>{};
-                for (auto [start, end] : ranges) {
-                    for (; start <= end; ++start) {
-                        out_entries.push_back(in_entries[start]);
+                for (auto [type, start, end] : ranges) {
+                    if (type == "id") {
+                        out_entries.push_back(std::to_string(row));
+                    } else if (type == "range") {
+                        for (; start <= end; ++start) {
+                            out_entries.push_back(in_entries[start]);
+                        }
                     }
                 }
                 vec.emplace_back(std::move(out_entries));
