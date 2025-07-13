@@ -12,9 +12,8 @@
 
 #include "writer.h"
 
-#include <fmt/format.h>
-
 #include <cassert>
+#include <fmt/format.h>
 
 namespace ivio {
 
@@ -32,27 +31,30 @@ struct writer_base<table::writer>::pimpl {
     std::string lineSuffix;
     std::string entrySeparator;
     bool firstLineHeader;
+    std::unordered_map<size_t, std::string> lineAltSuffix; // alternative suffix for specific rows
 
     std::vector<table::record> records;
     std::vector<size_t> longestEntry;
 
     std::string buffer;
-    pimpl(std::filesystem::path output, std::string linePrefix, std::string lineSuffix, std::string entrySeparator, bool firstLineHeader)
+    pimpl(std::filesystem::path output, std::string linePrefix, std::string lineSuffix, std::unordered_map<size_t, std::string> lineAltSuffix, std::string entrySeparator, bool firstLineHeader)
         : writer {[&]() -> Writers {
             return file_writer{output};
         }()}
         , linePrefix {linePrefix}
         , lineSuffix {lineSuffix}
+        , lineAltSuffix {lineAltSuffix}
         , entrySeparator {entrySeparator}
         , firstLineHeader {firstLineHeader}
     {}
 
-    pimpl(std::ostream& output, std::string linePrefix, std::string lineSuffix, std::string entrySeparator, bool firstLineHeader)
+    pimpl(std::ostream& output, std::string linePrefix, std::string lineSuffix, std::unordered_map<size_t, std::string> lineAltSuffix, std::string entrySeparator, bool firstLineHeader)
         : writer {[&]() -> Writers {
             return stream_writer{output};
         }()}
         , linePrefix {linePrefix}
         , lineSuffix {lineSuffix}
+        , lineAltSuffix {lineAltSuffix}
         , entrySeparator {entrySeparator}
         , firstLineHeader {firstLineHeader}
     {}
@@ -67,6 +69,7 @@ writer::writer(config config_)
         return std::make_unique<pimpl>(p,
                                        config_.linePrefix,
                                        config_.lineSuffix,
+                                       config_.lineAltSuffix,
                                        config_.entrySeparator,
                                        config_.firstLineHeader
         );
@@ -85,7 +88,7 @@ void writer::write(record_view record) {
 
     records.emplace_back(record);
     longestEntry.resize(std::max(longestEntry.size(), records.back().entries.size()));
-    for (size_t i{0}; i < records.size(); ++i) {
+    for (size_t i{0}; i < records.back().entries.size(); ++i) {
         longestEntry[i] = std::max(longestEntry[i], records.back().entries[i].size());
     }
 }
@@ -105,7 +108,11 @@ void writer::close() {
                     if (j > 0) buffer += pimpl_->entrySeparator;
                     buffer += fmt::format("{: >{}}", record.entries[j], longestEntry[j]);
                 }
-                buffer += pimpl_->lineSuffix;
+                if (auto iter = pimpl_->lineAltSuffix.find(i); iter != pimpl_->lineAltSuffix.end()) {
+                    buffer += iter->second;
+                } else {
+                    buffer += pimpl_->lineSuffix;
+                }
                 buffer += '\n';
 
                 if (i == 0 && pimpl_->firstLineHeader) {
