@@ -248,7 +248,15 @@ void app() {
                         auto per = std::stod(transformStr.substr(6));
                         auto v   = std::stod(s);
                         s = fmt::format("{}", v*per);
+                    } else if (transformStr == "inv") {
+                        auto v   = std::stod(s);
+                        s = fmt::format("{}", 1./v);
+                    } else if (transformStr == "log10") {
+                        auto v   = std::stod(s);
+                        s = fmt::format("{}", std::log10(v));
                     }
+
+
                     return s;
                 };
 
