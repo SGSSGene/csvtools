@@ -480,7 +480,7 @@ void app() {
                 .linePrefix      = "",
                 .lineSuffix      = "\\\\",
                 .entrySeparator  = " & ",
-                .firstLineHeader = cliHeader,
+                .firstLineHeader = false,
             }};
             for (auto& record : values) {
                 writer.write({
