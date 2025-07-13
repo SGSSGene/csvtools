@@ -12,9 +12,8 @@
 
 #include "writer.h"
 
-#include <fmt/format.h>
-
 #include <cassert>
+#include <fmt/format.h>
 
 namespace ivio {
 
@@ -85,7 +84,7 @@ void writer::write(record_view record) {
 
     records.emplace_back(record);
     longestEntry.resize(std::max(longestEntry.size(), records.back().entries.size()));
-    for (size_t i{0}; i < records.size(); ++i) {
+    for (size_t i{0}; i < records.back().entries.size(); ++i) {
         longestEntry[i] = std::max(longestEntry[i], records.back().entries[i].size());
     }
 }

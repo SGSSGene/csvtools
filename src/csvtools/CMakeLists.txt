@@ -14,4 +14,4 @@ target_link_libraries(csvtools
     fmt::fmt
     ivio::ivio
 )
-target_compile_features(csvtools PUBLIC cxx_std_20)
+target_compile_features(csvtools PUBLIC cxx_std_26)
