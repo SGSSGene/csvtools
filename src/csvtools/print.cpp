@@ -79,6 +79,12 @@ auto cliTransformPrint = clice::Argument {
     .desc   = "transforms the value",
     .value  = std::vector<std::string>{},
 };
+auto cliLatexExtra = clice::Argument {
+    .parent = &cliCmd,
+    .args   = {"--latex-extra"},
+    .desc   = "addition to the output <row>:<extra>",
+    .value  = std::vector<std::string>{},
+};
 
 struct Rect {
     size_t startRow{0}, endRow{std::numeric_limits<size_t>::max()};
@@ -212,6 +218,7 @@ void app() {
                 vec.emplace_back(std::move(out_entries));
             }
             std::swap(vec, values);
+            width = values[0].size();
         }
 
         auto parseNextF = [](std::string& s) {
@@ -483,10 +490,20 @@ void app() {
                 });
             }
         } else if (*cliOutputType == OutputType::Latex) {
+            auto altSuffix = std::unordered_map<size_t, std::string>{};
+            for (auto l : *cliLatexExtra) {
+                auto nbr = parseNextF(l);
+                auto [start, end] = parseNumberRange(nbr, 0, values.size()-1);
+                for (size_t row{start}; row <= end; ++row) {
+                    altSuffix[row] = "\\\\" + l;
+                }
+            }
+
             auto writer = ivio::table::writer {{
                 .output = std::cout,
                 .linePrefix      = "",
                 .lineSuffix      = "\\\\",
+                .lineAltSuffix   = std::move(altSuffix),
                 .entrySeparator  = " & ",
                 .firstLineHeader = false,
             }};

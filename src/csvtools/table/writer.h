@@ -13,6 +13,7 @@
 #include <filesystem>
 #include <functional>
 #include <ostream>
+#include <unordered_map>
 #include <variant>
 
 namespace ivio::table {
@@ -29,6 +30,9 @@ struct writer : writer_base<writer> {
 
         // How a line should end
         std::string lineSuffix {" |"};
+
+        // alternative suffix for specific rows
+        std::unordered_map<size_t, std::string> lineAltSuffix;
 
         // How each entry should be separated
         std::string entrySeparator {" | "};
