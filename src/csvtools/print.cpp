@@ -168,6 +168,82 @@ void app() {
             std::swap(vec, values);
         }
 
+        // parse number
+        auto parseNumberRange = [](std::string s, size_t min, size_t max) -> std::tuple<size_t, size_t> {
+            if (auto iter = s.find("-"); iter != std::string::npos) {
+                auto start = s.substr(0, iter);
+                size_t startI = min;
+                auto end   = s.substr(iter+1);
+                size_t endI = max;
+
+                if (start.size()) {
+                    startI = std::stoi(start);
+                }
+                if (end.size()) {
+                    endI = std::stoi(end);
+                }
+                return {startI, endI};
+            } else if (s.size()) {
+                auto v = std::stoi(s);
+                return {v, v};
+            }
+            return {0, max};
+        };
+        auto parseNextF = [](std::string& s) {
+            auto iter = s.find(":");
+            if (iter == std::string::npos) {
+                throw std::runtime_error{"filter must be of format: \"<rnr>:<cnr>:<filter>:<fmt>\""};
+            }
+            auto ret = s.substr(0, iter);
+            s = s.substr(iter+1);
+            return ret;
+        };
+
+
+
+        if (cliTransformPrint) {
+            using Transform = std::function<std::string(size_t row, size_t col, std::string)>;
+            auto transformMap = std::vector<std::tuple<Rect, Transform>>{};
+            for (auto l : *cliTransformPrint) {
+                auto rowsStr      = parseNextF(l);
+                auto colsStr      = parseNextF(l);
+                auto transformStr = l;
+
+                // parse which columns to apply this to
+                auto [rstart, rend] = parseNumberRange(rowsStr, 0, std::numeric_limits<size_t>::max());
+                auto [cstart, cend] = parseNumberRange(colsStr, 0, width-1);
+                auto rect = Rect {
+                    rstart, rend,
+                    cstart, cend,
+                };
+
+
+                auto filter = [=](size_t row, size_t col, std::string s) {
+                    if (transformStr.starts_with("scale ")) {
+                        auto per = std::stod(transformStr.substr(6));
+                        auto v   = std::stod(s);
+                        s = fmt::format("{}", v*per);
+                    }
+                    return s;
+                };
+
+                transformMap.emplace_back(rect, filter);
+            }
+
+            for (size_t row{0}; row < values.size(); ++row) {
+                auto& entries = values[row];
+                for (size_t col{0}; col < entries.size(); ++col) {
+                    auto& e = entries[col];
+                    for (auto [rect, transform] : transformMap) {
+                        if (!rect.isInRange(row, col)) continue;
+                        try {
+                            e = transform(row, col, e);
+                        } catch(...){}
+                    }
+                }
+            }
+        }
+
         auto cachedValues = std::unordered_map<std::string, double>{};
 
         auto cachedValue_fetch_or_run = [&](std::string id, auto cb) {
