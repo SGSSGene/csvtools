@@ -184,6 +184,11 @@ void app() {
                     ranges.emplace_back("row", start, 1);
                     continue;
                 }
+                if (e.starts_with("const ")) {
+                    auto v = std::stoi(e.substr(5));
+                    ranges.emplace_back("row", v, 0);
+                    continue;
+                }
                 auto [start, end] = parseNumberRange(e, 0, width-1);
                 if (start >= width || end >= width) {
                     throw std::runtime_error{fmt::format("invalid order range {}-{} max value allowed is {}", start, end, width-1)};
