@@ -43,15 +43,16 @@ auto cliUseMapping = clice::Argument {
     .desc   = "A CSV file, which defines mapping",
     .value  = std::filesystem::path{},
 };
-enum class OutputType { Table, CSV };
+enum class OutputType { Table, CSV, Latex };
 auto cliOutputType = clice::Argument {
     .parent = &cliCmd,
     .args   = {"--ot", "--output_type"},
-    .desc   = "type of the output file. Available: table, csv",
+    .desc   = "type of the output file. Available: table, csv, latex",
     .value  = OutputType::Table,
     .mapping = {{
         {"table", OutputType::Table},
         {"csv",   OutputType::CSV},
+        {"latex", OutputType::Latex},
     }},
 };
 auto cliColumnOrder = clice::Argument {
@@ -90,9 +91,6 @@ struct Rect {
         return valid;
     }
 };
-
-void printLatexTable(std::vector<std::string> entries) {
-}
 
 void app() {
     if (cliCmd->size() == 0) {
@@ -474,6 +472,19 @@ void app() {
                 .linePrefix      = "",
                 .lineSuffix      = "",
                 .entrySeparator  = ", ",
+                .firstLineHeader = cliHeader,
+            }};
+            for (auto& record : values) {
+                writer.write({
+                    .entries = record,
+                });
+            }
+        } else if (*cliOutputType == OutputType::Latex) {
+            auto writer = ivio::table::writer {{
+                .output = std::cout,
+                .linePrefix      = "",
+                .lineSuffix      = "\\\\",
+                .entrySeparator  = " & ",
                 .firstLineHeader = cliHeader,
             }};
             for (auto& record : values) {
